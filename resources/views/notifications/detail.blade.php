@@ -123,8 +123,8 @@
                                                                     <select class="form-control item-status"
                                                                            id="item-status-{{ $item->id }}"
                                                                            name="item_status[{{ $item->id }}]">
-                                                                        <option value="available" selected>มีให้ยืม</option>
-                                                                        <option value="unavailable">ไม่มีให้ยืม</option>
+                                                                        <option value="available" selected>ยืมได้</option>
+                                                                        <option value="unavailable">ยืมไม่ได้</option>
                                                                     </select>
                                                                 </td>
                                                                 <td>
