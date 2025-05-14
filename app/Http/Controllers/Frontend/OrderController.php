@@ -48,6 +48,8 @@ class OrderController extends Controller
                 'lastname' => 'required',
                 'phone' => 'required|numeric',
                 'email' => 'required|email',
+                'pickup_type' => 'required|in:library,department',
+                'pickup_location' => 'required_if:pickup_type,department',
             ], [
                 'faculty_id.required' => 'กรุณาเลือกข้อมูลหน่วยงาน',
                 'patrontype_id.required' => 'กรุณาเลือกข้อมูลประเภทสมาชิก',
@@ -59,6 +61,8 @@ class OrderController extends Controller
                 'phone.numeric' => 'กรุณาใส่หมายเลขเท่านั้น',
                 'email.required' => 'กรุณาใส่ข้อมูลอีเมล์',
                 'email.email' => 'กรุณาใส่ข้อมูลอีเมล์ให้ถูกต้อง',
+                'pickup_type.required' => 'กรุณาเลือกสถานที่รับหนังสือ',
+                'pickup_location.required_if' => 'กรุณาระบุสถานที่รับหนังสือ',
             ]);
 
             // Create order - เปลี่ยนสถานะเริ่มต้นเป็น 'pending' แทน 'success'
@@ -75,6 +79,8 @@ class OrderController extends Controller
                 'order_month' => Carbon::now()->format('F'),
                 'order_year' => Carbon::now()->format('Y'),
                 'status' => 'pending', // เปลี่ยนจาก 'success' เป็น 'pending'
+                'pickup_type' => $request->pickup_type,
+                'pickup_location' => $request->pickup_type === 'department' ? trim($request->pickup_location) : null,
                 'created_at' => Carbon::now(),
             ]);
 

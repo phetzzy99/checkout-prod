@@ -79,6 +79,18 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4">
+                                        <p class="tx-medium">สถานที่รับหนังสือ:</p>
+                                    </div>
+                                    <div class="col-md-8">
+                                        @if ($notification->order->pickup_type == 'library')
+                                            <p>รับที่ห้องสมุด</p>
+                                        @else
+                                            <p>รับที่หน่วยงาน: {{ $notification->order->pickup_location }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
                                         <p class="tx-medium">สถานะการยืม:</p>
                                     </div>
                                     <div class="col-md-8">
@@ -121,18 +133,31 @@
                                                                 <td>{{ $item->callnum }}</td>
                                                                 <td class="text-center">
                                                                     <select class="form-control item-status"
-                                                                           id="item-status-{{ $item->id }}"
-                                                                           name="item_status[{{ $item->id }}]">
-                                                                        <option value="available" selected>ยืมได้</option>
-                                                                        <option value="unavailable">ยืมไม่ได้</option>
+                                                                        id="item-status-{{ $item->id }}"
+                                                                        name="item_status[{{ $item->id }}]">
+                                                                        <option value="available" selected>มีให้ยืม</option>
+                                                                        <option value="unavailable">ไม่มีให้ยืม</option>
                                                                     </select>
                                                                 </td>
                                                                 <td>
                                                                     <div class="item-note-container" id="note-container-{{ $item->id }}" style="display: none;">
+                                                                        <!-- เพิ่มตัวเลือกสาเหตุการยืมไม่ได้ -->
+                                                                        <select class="form-control form-control-sm item-reason mb-2"
+                                                                            id="item-reason-{{ $item->id }}"
+                                                                            name="item_reasons[{{ $item->id }}]">
+                                                                            <option value="">-- เลือกสาเหตุ --</option>
+                                                                            <option value="ยืมไปแล้ว">ยืมไปแล้ว</option>
+                                                                            <option value="หนังสืออยู่ระหว่างการซ่อม">หนังสืออยู่ระหว่างการซ่อม</option>
+                                                                            <option value="หนังสือสำหรับใช้ในห้องสมุด">หนังสือสำหรับใช้ในห้องสมุด</option>
+                                                                            <option value="หนังสือสงวน">หนังสือสงวน</option>
+                                                                            <option value="หนังสืออยู่ระหว่างการจัดหาย">หนังสืออยู่ระหว่างการจัดหาย</option>
+                                                                            <option value="other">อื่นๆ</option>
+                                                                        </select>
                                                                         <input type="text" class="form-control form-control-sm item-note"
-                                                                               id="item-note-{{ $item->id }}"
-                                                                               name="item_notes[{{ $item->id }}]"
-                                                                               placeholder="ระบุเหตุผล">
+                                                                            id="item-note-{{ $item->id }}"
+                                                                            name="item_notes[{{ $item->id }}]"
+                                                                            placeholder="ระบุเหตุผล"
+                                                                            style="display: none;">
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -193,9 +218,14 @@
                                                                     $isAvailable = isset($item->status) ? $item->status == 'available' : true;
                                                                 @endphp
                                                                 @if($isAvailable)
-                                                                    <span class="badge badge-success">มีให้ยืม</span>
+                                                                    <span class="badge badge-success">ยืมได้</span>
                                                                 @else
-                                                                    <span class="badge badge-danger">ไม่มีให้ยืม</span>
+                                                                    <span class="badge badge-danger">ยืมไม่ได้</span>
+                                                                    @if(isset($item->note))
+                                                                        <div class="mt-2">
+                                                                            <span class="reason-badge">{{ $item->note }}</span>
+                                                                        </div>
+                                                                    @endif
                                                                 @endif
                                                             </td>
                                                             <td>
@@ -303,6 +333,31 @@
             background-color: #dc3545;
             color: white;
         }
+            /* เพิ่มเติมจาก CSS เดิม */
+        .is-invalid {
+            border-color: #dc3545 !important;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        /* ปรับขนาด dropdown ให้พอดี */
+        .item-reason {
+            margin-bottom: 8px;
+        }
+
+        /* สไตล์สำหรับป้ายแสดงเหตุผลในส่วนที่อ่านอย่างเดียว */
+        .reason-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: normal;
+            border-radius: 4px;
+            background-color: #e9ecef;
+            margin-bottom: 5px;
+        }
     </style>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -320,21 +375,78 @@
                         alert('กรุณาเลือกเจ้าหน้าที่ผู้ยืนยัน');
                         return false;
                     }
+
+                    // ตรวจสอบการป้อนเหตุผลเมื่อเลือก "ไม่มีให้ยืม"
+                    let valid = true;
+                    $('.item-status').each(function() {
+                        const itemId = this.id.replace('item-status-', '');
+
+                        if ($(this).val() === 'unavailable') {
+                            const reason = $(`#item-reason-${itemId}`).val();
+
+                            if (!reason) {
+                                valid = false;
+                                $(`#item-reason-${itemId}`).addClass('is-invalid');
+                            } else if (reason === 'other' && $(`#item-note-${itemId}`).val().trim() === '') {
+                                valid = false;
+                                $(`#item-note-${itemId}`).addClass('is-invalid');
+                            }
+                        }
+                    });
+
+                    if (!valid) {
+                        e.preventDefault();
+                        alert('กรุณาระบุสาเหตุที่ไม่มีให้ยืมให้ครบถ้วน');
+                        return false;
+                    }
+
                     return true;
                 });
 
-                // การทำงานของ dropdown
+                // การทำงานของ dropdown สถานะ
                 $('.item-status').on('change', function() {
                     const itemId = this.id.replace('item-status-', '');
                     const noteContainer = $(`#note-container-${itemId}`);
+                    const reasonSelect = $(`#item-reason-${itemId}`);
+                    const noteInput = $(`#item-note-${itemId}`);
 
                     if ($(this).val() === 'unavailable') {
                         noteContainer.show();
-                        $(`#item-note-${itemId}`).prop('required', true);
+                        reasonSelect.show();
+
+                        // ถ้าเคยเลือก other ไว้แล้ว ให้แสดง input
+                        if (reasonSelect.val() === 'other') {
+                            noteInput.show();
+                            noteInput.prop('required', true);
+                        } else {
+                            noteInput.hide();
+                            noteInput.prop('required', false);
+                        }
                     } else {
                         noteContainer.hide();
-                        $(`#item-note-${itemId}`).prop('required', false);
+                        reasonSelect.val('');
+                        noteInput.val('');
+                        noteInput.prop('required', false);
                     }
+                });
+
+                // การทำงานของ dropdown เหตุผล
+                $('.item-reason').on('change', function() {
+                    const itemId = this.id.replace('item-reason-', '');
+                    const noteInput = $(`#item-note-${itemId}`);
+
+                    if ($(this).val() === 'other') {
+                        noteInput.show();
+                        noteInput.prop('required', true);
+                        noteInput.focus();
+                    } else {
+                        noteInput.hide();
+                        noteInput.prop('required', false);
+                    }
+
+                    // Remove invalid class when selection changes
+                    $(this).removeClass('is-invalid');
+                    noteInput.removeClass('is-invalid');
                 });
             }
         });

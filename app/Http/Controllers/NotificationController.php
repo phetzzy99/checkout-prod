@@ -69,6 +69,7 @@ class NotificationController extends Controller
             'staff_id' => 'required|exists:staff,id',
             'confirmation_note' => 'nullable|string|max:255',
             'item_status' => 'array',
+            'item_reasons' => 'array',
             'item_notes' => 'array',
         ],[
             'staff_id.required' => 'กรุณาเลือกเจ้าหน้าที่ผู้ยืนยัน',
@@ -93,11 +94,24 @@ class NotificationController extends Controller
 
         // อัปเดตสถานะของแต่ละรายการ
         $itemStatuses = $request->item_status ?? [];
+        $itemReasons = $request->item_reasons ?? [];
         $itemNotes = $request->item_notes ?? [];
 
         foreach ($order->orderItems as $item) {
             $status = isset($itemStatuses[$item->id]) ? $itemStatuses[$item->id] : 'available';
-            $note = isset($itemNotes[$item->id]) ? $itemNotes[$item->id] : null;
+
+            // กำหนดหมายเหตุจากเหตุผลที่เลือก
+            $note = null;
+            if ($status === 'unavailable' && isset($itemReasons[$item->id])) {
+                // ถ้าเลือก "อื่นๆ" ให้ใช้ข้อความจาก input
+                if ($itemReasons[$item->id] === 'other' && isset($itemNotes[$item->id])) {
+                    $note = $itemNotes[$item->id];
+                }
+                // ถ้าไม่ใช่ "อื่นๆ" ให้ใช้ข้อความจากตัวเลือก
+                else if ($itemReasons[$item->id] !== 'other') {
+                    $note = $itemReasons[$item->id];
+                }
+            }
 
             $item->update([
                 'status' => $status,

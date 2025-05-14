@@ -24,6 +24,8 @@ class Order extends Model
         'order_month',
         'order_year',
         'status', // เพิ่ม status ใน fillable
+        'pickup_type',
+        'pickup_location',
         'created_at',
         'updated_at'
     ];

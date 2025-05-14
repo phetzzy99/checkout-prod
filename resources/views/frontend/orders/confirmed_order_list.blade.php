@@ -102,6 +102,19 @@
                                         @endif
                                     </div>
                                 </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <p class="tx-medium">สถานที่รับหนังสือ:</p>
+                                    </div>
+                                    <div class="col-md-8">
+                                        @if ($orderItem[0]->order->pickup_type == 'library')
+                                            <span class="badge badge-info">รับที่ห้องสมุด</span>
+                                        @else
+                                            <span class="badge badge-primary">รับที่หน่วยงาน:
+                                                {{ $orderItem[0]->order->pickup_location }}</span>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -130,7 +143,7 @@
                                 <div class="timeline-points">
                                     <div class="point-container">
                                         <div class="point {{ $currentStatus >= 1 ? 'completed' : '' }}">
-                                            @if($currentStatus >= 1)
+                                            @if ($currentStatus >= 1)
                                                 <i class="icon ion-document-text"></i>
                                             @endif
                                         </div>
@@ -139,7 +152,7 @@
 
                                     <div class="point-container">
                                         <div class="point {{ $currentStatus >= 2 ? 'completed' : '' }}">
-                                            @if($currentStatus >= 2)
+                                            @if ($currentStatus >= 2)
                                                 <i class="icon ion-ios-gear"></i>
                                             @endif
                                         </div>
@@ -148,7 +161,7 @@
 
                                     <div class="point-container">
                                         <div class="point {{ $currentStatus >= 3 ? 'completed' : '' }}">
-                                            @if($currentStatus >= 3)
+                                            @if ($currentStatus >= 3)
                                                 <i class="icon ion-checkmark-circled"></i>
                                             @endif
                                         </div>
@@ -176,7 +189,8 @@
                             top: 0;
                             left: 0;
                             height: 4px;
-                            background-color: #f6993f; /* สีส้มตามภาพตัวอย่าง */
+                            background-color: #f6993f;
+                            /* สีส้มตามภาพตัวอย่าง */
                             max-width: 100%;
                             transition: width 0.5s ease;
                         }
