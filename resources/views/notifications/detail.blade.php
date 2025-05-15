@@ -260,14 +260,14 @@
                             @if ($notification->is_read)
                                 <div class="bg-gray-200 pd-20">
                                     <h5 class="tx-dark">ข้อมูลการยืนยัน</h5>
-                                    {{-- <div class="row mg-t-10">
+                                    <div class="row mg-t-10">
                                         <div class="col-md-4">
                                             <p class="tx-medium">สถานะ:</p>
                                         </div>
                                         <div class="col-md-8">
                                             <p><span class="badge badge-success">ยืนยันแล้ว</span></p>
                                         </div>
-                                    </div> --}}
+                                    </div>
                                     <div class="row">
                                         <div class="col-md-4">
                                             <p class="tx-medium">ยืนยันโดย:</p>
