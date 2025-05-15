@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ConfirmationMail;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Staff;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationController extends Controller
 {
@@ -29,10 +31,21 @@ class NotificationController extends Controller
                 $query->where('is_read', true);
             } elseif ($request->status === 'unread') {
                 $query->where('is_read', false);
+            } elseif ($request->status === 'waiting_delivery') {
+                $query->where('is_read', true)
+                    ->whereHas('order', function($q) {
+                        $q->where('status', 'success')
+                        ->where('pickup_type', 'department')
+                        ->whereNull('delivered_at');
+                    });
             }
         }
 
-        $notifications = $query->with('order.faculty')->orderBy('created_at', 'desc')->paginate(10);
+        $notifications = $query->with(['order' => function($query) {
+                $query->with('faculty');
+            }])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         $staffs = Staff::where('status', 'active')->get();
 
@@ -63,6 +76,7 @@ class NotificationController extends Controller
         return view('notifications.detail', compact('notification', 'staffs'));
     }
 
+    // ปรับปรุงเมธอด confirmNotification
     public function confirmNotification(Request $request, $id)
     {
         $request->validate([
@@ -117,6 +131,15 @@ class NotificationController extends Controller
                 'status' => $status,
                 'note' => $note
             ]);
+        }
+
+        // ส่งอีเมลยืนยันไปหาผู้ยืม
+        try {
+            // ต้องโหลดความสัมพันธ์ orderItems เพื่อใช้ในอีเมล
+            $notification->load(['order.orderItems']);
+            Mail::to($order->email)->send(new ConfirmationMail($notification));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send confirmation email: ' . $e->getMessage());
         }
 
         return redirect()->route('order-list-view', $notification->order_id)

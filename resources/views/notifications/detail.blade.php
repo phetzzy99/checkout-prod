@@ -262,7 +262,7 @@
                                     <h5 class="tx-dark">ข้อมูลการยืนยัน</h5>
                                     <div class="row mg-t-10">
                                         <div class="col-md-4">
-                                            <p class="tx-medium">สถานะ:</p>
+                                            <p class="tx-medium">สถานะตัวเล่มหนังสือ:</p>
                                         </div>
                                         <div class="col-md-8">
                                             <p><span class="badge badge-success">ยืนยันแล้ว</span></p>

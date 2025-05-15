@@ -21,14 +21,15 @@
 
                     <div class="row mb-3">
                         <div class="col-md-3">
-                            <form action="{{ route('notifications.index') }}" method="GET">
-                                <select id="status-filter" name="status" class="form-control"
-                                    onchange="this.form.submit()">
+                            <form action="{{ route('notifications.index') }}" method="GET" id="status-filter-form">
+                                <select id="status-filter" name="status" class="form-control" onchange="document.getElementById('status-filter-form').submit()">
                                     <option value="">ทั้งหมด</option>
                                     <option value="unread" {{ request('status') == 'unread' ? 'selected' : '' }}>
                                         ยังไม่ได้ยืนยัน</option>
                                     <option value="read" {{ request('status') == 'read' ? 'selected' : '' }}>ยืนยันแล้ว
                                     </option>
+                                    <option value="waiting_delivery" {{ request('status') == 'waiting_delivery' ? 'selected' : '' }}>
+                                        รอการจัดส่ง</option>
                                 </select>
                             </form>
                         </div>
@@ -40,6 +41,8 @@
                             กำลังแสดงรายการที่ <span class="badge badge-danger">ยังไม่ได้ยืนยัน</span> เท่านั้น
                         @elseif(request('status') == 'read')
                             กำลังแสดงรายการที่ <span class="badge badge-success">ยืนยันแล้ว</span> เท่านั้น
+                        @elseif(request('status') == 'waiting_delivery')
+                            กำลังแสดงรายการที่ <span class="badge badge-warning">รอการจัดส่ง</span> เท่านั้น
                         @else
                             กำลังแสดงรายการทั้งหมด
                         @endif
@@ -55,7 +58,7 @@
                                 <th>วันที่</th>
                                 <th>ข้อความ</th>
                                 <th>คณะ/หน่วยงาน</th>
-                                <th>สถานะการแจ้งเตือน</th>
+                                <th>สถานะตัวเล่มหนังสือ</th>
                                 <th>สถานะการยืม</th>
                                 <th>เจ้าหน้าที่ผู้ยืนยัน</th>
                                 <th>การจัดการ</th>
@@ -76,7 +79,15 @@
                                     </td>
                                     <td>
                                         @if ($notification->order->status == 'success')
-                                            <span class="badge badge-success">สำเร็จ</span>
+                                            @if ($notification->order->pickup_type == 'department')
+                                                @if (empty($notification->order->delivered_at))
+                                                    <span class="badge badge-warning">รอการจัดส่ง</span>
+                                                @else
+                                                    <span class="badge badge-success">จัดส่งแล้ว</span>
+                                                @endif
+                                            @else
+                                                <span class="badge badge-success">สำเร็จ</span>
+                                            @endif
                                         @else
                                             <span class="badge badge-warning">รออนุมัติ</span>
                                         @endif
@@ -152,6 +163,44 @@
         .page-link:hover {
             background-color: #f8f9fa;
             color: #0056b3;
+        }
+
+        .unread {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        }
+
+        .unread td:first-child::before {
+            content: "•";
+            color: #dc3545;
+            font-size: 24px;
+            margin-right: 8px;
+            position: relative;
+            top: 2px;
+        }
+
+        /* เพิ่มหรือปรับปรุง style สำหรับ badge */
+        .badge {
+            padding: 8px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .badge-warning {
+            background-color: #ffc107;
+            color: #212529;
         }
 
         #status-filter {

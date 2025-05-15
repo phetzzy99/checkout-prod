@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ConfirmationMail;
 use App\Mail\OrderMail;
 use App\Models\Notification;
 use App\Models\Order;
@@ -175,9 +176,20 @@ class OrderController extends Controller
                 $notification = Notification::where('order_id', $id)->where('is_read', true)->first();
 
                 if ($notification) {
+                    // ส่งอีเมลแจ้งการจัดส่งไปหาผู้ยืม
+                    try {
+                        // ต้องโหลดความสัมพันธ์ orderItems เพื่อใช้ในอีเมล
+                        $notification->load(['order.orderItems']);
+                        Mail::to($order->email)->send(new ConfirmationMail($notification, 'delivery'));
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send delivery notification email: ' . $e->getMessage());
+                    }
+
                     // ถ้าการอัปเดตเริ่มจากหน้า notification/detail ให้กลับไปที่หน้าเดิม
-                    return redirect()->route('notifications.detail', $notification->id)
-                        ->with('success', 'อัปเดตสถานะการจัดส่งเรียบร้อยแล้ว');
+                    if ($request->header('referer') && strpos($request->header('referer'), 'notifications/detail')) {
+                        return redirect()->route('notifications.detail', $notification->id)
+                            ->with('success', 'อัปเดตสถานะการจัดส่งเรียบร้อยแล้ว');
+                    }
                 }
 
                 // ถ้าไม่ได้เริ่มจากหน้า notification/detail ให้กลับไปที่หน้า order-list-view

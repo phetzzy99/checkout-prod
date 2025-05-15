@@ -34,6 +34,9 @@
                             <th class="wd-20p sorting" tabindex="0" aria-controls="datatable1" rowspan="1"
                                 colspan="1" style="width: 25%;"
                                 aria-label="E-mail: activate to sort column descending">สถานะ</th>
+                            <th class="wd-15p sorting" tabindex="0" aria-controls="datatable1" rowspan="1"
+                                colspan="1" style="width: 25%;"
+                                aria-label="E-mail: activate to sort column descending">สถานที่รับ</th>
                             <th class="wd-10p sorting" tabindex="0" aria-controls="datatable1" rowspan="1"
                                 colspan="1" style="width: 25%;"
                                 aria-label="E-mail: activate to sort column descending">รายการยืมออนไลน์</th>
@@ -76,6 +79,13 @@
                                             <i class="icon ion-ios-time alert-icon tx-20 tx-warning mg-r-5"></i>
                                             <span class="tx-warning">รอยืนยัน</span>
                                         </div>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if ($item->pickup_type == 'library')
+                                        <span class="badge badge-primary">รับที่ห้องสมุด</span>
+                                    @else
+                                        <span class="badge badge-danger">รับที่หน่วยงาน: {{ $item->pickup_location }}</span>
                                     @endif
                                 </td>
                                 @php
