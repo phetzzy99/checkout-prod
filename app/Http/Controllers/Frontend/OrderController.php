@@ -159,4 +159,36 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+    public function updateDeliveryStatus(Request $request, $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            // ตรวจสอบว่าเป็นการรับที่หน่วยงานและยังไม่ได้จัดส่ง
+            if ($order->pickup_type == 'department' && empty($order->delivered_at)) {
+                $order->update([
+                    'delivered_at' => now()
+                ]);
+
+                // หาการแจ้งเตือนที่เกี่ยวข้อง
+                $notification = Notification::where('order_id', $id)->where('is_read', true)->first();
+
+                if ($notification) {
+                    // ถ้าการอัปเดตเริ่มจากหน้า notification/detail ให้กลับไปที่หน้าเดิม
+                    return redirect()->route('notifications.detail', $notification->id)
+                        ->with('success', 'อัปเดตสถานะการจัดส่งเรียบร้อยแล้ว');
+                }
+
+                // ถ้าไม่ได้เริ่มจากหน้า notification/detail ให้กลับไปที่หน้า order-list-view
+                return redirect()->route('order-list-view', $id)
+                    ->with('success', 'อัปเดตสถานะการจัดส่งเรียบร้อยแล้ว');
+            }
+
+            return redirect()->back()->with('error', 'ไม่สามารถอัปเดตสถานะการจัดส่งได้');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
+        }
+    }
+
 }

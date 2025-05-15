@@ -95,7 +95,15 @@
                                     </div>
                                     <div class="col-md-8">
                                         @if ($notification->order->status == 'success')
-                                            <span class="badge badge-success">ยืนยันแล้ว</span>
+                                            @if ($notification->order->pickup_type == 'department')
+                                                @if (empty($notification->order->delivered_at))
+                                                    <span class="badge badge-warning">รอการจัดส่ง</span>
+                                                @else
+                                                    <span class="badge badge-success">จัดส่งแล้ว</span>
+                                                @endif
+                                            @else
+                                                <span class="badge badge-success">ยืนยันแล้ว</span>
+                                            @endif
                                         @else
                                             <span class="badge badge-warning">รอยืนยัน</span>
                                         @endif
@@ -165,6 +173,15 @@
                                                     </tbody>
                                                 </table>
                                             </div>
+
+                                            <!-- เพิ่มตัวเลือกสถานที่รับ -->
+                                            @if ($notification->order->pickup_type == 'department')
+                                                <div class="form-group mt-4">
+                                                    <div class="alert alert-info">
+                                                        <i class="fa fa-info-circle"></i> รายการนี้เป็นการรับที่หน่วยงาน: <strong>{{ $notification->order->pickup_location }}</strong>
+                                                    </div>
+                                                </div>
+                                            @endif
 
                                             <div class="form-group mt-4">
                                                 <label for="staff_id" class="form-control-label">เลือกเจ้าหน้าที่ผู้ยืนยัน: <span class="tx-danger">*</span></label>
@@ -243,14 +260,14 @@
                             @if ($notification->is_read)
                                 <div class="bg-gray-200 pd-20">
                                     <h5 class="tx-dark">ข้อมูลการยืนยัน</h5>
-                                    <div class="row mg-t-10">
+                                    {{-- <div class="row mg-t-10">
                                         <div class="col-md-4">
                                             <p class="tx-medium">สถานะ:</p>
                                         </div>
                                         <div class="col-md-8">
                                             <p><span class="badge badge-success">ยืนยันแล้ว</span></p>
                                         </div>
-                                    </div>
+                                    </div> --}}
                                     <div class="row">
                                         <div class="col-md-4">
                                             <p class="tx-medium">ยืนยันโดย:</p>
@@ -274,6 +291,33 @@
                                             </div>
                                             <div class="col-md-8">
                                                 <p>{{ $notification->confirmation_note }}</p>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    <!-- เพิ่มส่วนของสถานะการจัดส่ง -->
+                                    @if ($notification->order->pickup_type == 'department')
+                                        <div class="row mg-t-20">
+                                            <div class="col-md-4">
+                                                <p class="tx-medium">สถานะการจัดส่ง:</p>
+                                            </div>
+                                            <div class="col-md-8">
+                                                @if (empty($notification->order->delivered_at))
+                                                    <div class="d-flex align-items-center">
+                                                        <span class="badge badge-warning mr-3">รอการจัดส่ง</span>
+                                                        <form action="{{ route('order.update-delivery', $notification->order->id) }}" method="POST">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('ยืนยันการจัดส่งแล้ว?')">
+                                                                <i class="fa fa-paper-plane mr-1"></i> ยืนยันการจัดส่งแล้ว
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                @else
+                                                    <div>
+                                                        <span class="badge badge-success">จัดส่งแล้ว</span>
+                                                        <small class="ml-2">({{ $notification->order->delivered_at->format('d/m/Y H:i:s') }})</small>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     @endif

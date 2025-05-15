@@ -90,6 +90,8 @@ Route::prefix('home')->group(function(){
     Route::get('/orders', [OrderController::class, 'ListOrder'])->name('order.view');
     Route::get('/orders/list/{id}', [OrderController::class, 'OrderListView'])->name('order-list-view');
     Route::post('/order/store', [OrderController::class, 'OrderStore'])->name('order.store');
+    Route::post('/orders/{id}/update-delivery', [OrderController::class, 'updateDeliveryStatus'])
+    ->name('order.update-delivery');
 });
 
 // routes/web.php

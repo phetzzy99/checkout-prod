@@ -26,8 +26,13 @@ class Order extends Model
         'status', // เพิ่ม status ใน fillable
         'pickup_type',
         'pickup_location',
+        'delivered_at',
         'created_at',
         'updated_at'
+    ];
+
+    protected $casts = [
+        'delivered_at' => 'datetime',
     ];
 
     public function faculty(){

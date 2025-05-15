@@ -110,8 +110,13 @@
                                         @if ($orderItem[0]->order->pickup_type == 'library')
                                             <span class="badge badge-info">รับที่ห้องสมุด</span>
                                         @else
-                                            <span class="badge badge-primary">รับที่หน่วยงาน:
-                                                {{ $orderItem[0]->order->pickup_location }}</span>
+                                            <span class="badge badge-primary">รับที่หน่วยงาน: {{ $orderItem[0]->order->pickup_location }}</span>
+
+                                            @if (!empty($orderItem[0]->order->delivered_at))
+                                                <span class="badge badge-success ml-2">จัดส่งแล้ว ({{ $orderItem[0]->order->delivered_at->format('d/m/Y H:i') }})</span>
+                                            @else
+                                                <span class="badge badge-warning ml-2">รอจัดส่ง</span>
+                                            @endif
                                         @endif
                                     </div>
                                 </div>
@@ -123,27 +128,50 @@
                         <h6 class="card-body-title mb-4">สถานะการดำเนินการ</h6>
 
                         @php
+                            // กำหนดค่าเริ่มต้น
+                            $isDeliveryToLocation = false;
+
+                            // ตรวจสอบว่าเป็นการรับที่หน่วยงานหรือไม่
+                            if (isset($orderItem[0]->order->pickup_type) && $orderItem[0]->order->pickup_type == 'department') {
+                                $isDeliveryToLocation = true;
+                            }
+
+                            // กำหนดจำนวนขั้นตอนทั้งหมด
+                            $totalSteps = $isDeliveryToLocation ? 4 : 3;
+
                             // กำหนดสถานะปัจจุบันตามข้อมูลในระบบ
-                            // 1 = รับรายการ, 2 = กำลังจัดเตรียม, 3 = ยืนยันเรียบร้อยแล้ว
+                            // 1 = รับรายการ, 2 = กำลังจัดเตรียมทรัพยากร, 3 = รอจัดส่ง (เฉพาะรับที่หน่วยงาน), 3/4 = ยืนยันเรียบร้อยแล้ว
                             $currentStatus = 1; // ค่าเริ่มต้น - เมื่อมีการสร้างออเดอร์
 
-                            if (isset($order)) {
+                            if (isset($orderItem[0]->order)) {
+                                $order = $orderItem[0]->order;
+
                                 if ($order->status == 'pending') {
-                                    $currentStatus = 2; // กำลังจัดเตรียม
+                                    $currentStatus = 2; // กำลังจัดเตรียมทรัพยากร
                                 } elseif ($order->status == 'success') {
-                                    $currentStatus = 3; // ยืนยันเรียบร้อยแล้ว
+                                    if ($isDeliveryToLocation && empty($order->delivered_at)) {
+                                        $currentStatus = 3; // รอจัดส่ง
+                                    } else {
+                                        $currentStatus = $totalSteps; // ยืนยันเรียบร้อยแล้ว
+                                    }
                                 }
+                            }
+
+                            // คำนวณความกว้างของแถบ progress
+                            $progressWidth = 0;
+                            if ($currentStatus > 1) {
+                                $progressWidth = (($currentStatus - 1) / ($totalSteps - 1)) * 100;
                             }
                         @endphp
 
                         <div class="timeline-container">
                             <div class="timeline-track">
-                                <div class="timeline-progress" style="width: {{ ($currentStatus - 1) * 50 }}%"></div>
+                                <div class="timeline-progress" style="width: {{ $progressWidth }}%"></div>
 
                                 <div class="timeline-points">
                                     <div class="point-container">
                                         <div class="point {{ $currentStatus >= 1 ? 'completed' : '' }}">
-                                            @if ($currentStatus >= 1)
+                                            @if($currentStatus >= 1)
                                                 <i class="icon ion-document-text"></i>
                                             @endif
                                         </div>
@@ -152,16 +180,27 @@
 
                                     <div class="point-container">
                                         <div class="point {{ $currentStatus >= 2 ? 'completed' : '' }}">
-                                            @if ($currentStatus >= 2)
+                                            @if($currentStatus >= 2)
                                                 <i class="icon ion-ios-gear"></i>
                                             @endif
                                         </div>
                                         <div class="point-label">กำลังจัดเตรียมทรัพยากร</div>
                                     </div>
 
+                                    @if($isDeliveryToLocation)
                                     <div class="point-container">
                                         <div class="point {{ $currentStatus >= 3 ? 'completed' : '' }}">
-                                            @if ($currentStatus >= 3)
+                                            @if($currentStatus >= 3)
+                                                <i class="icon ion-paper-airplane"></i>
+                                            @endif
+                                        </div>
+                                        <div class="point-label">รอจัดส่ง</div>
+                                    </div>
+                                    @endif
+
+                                    <div class="point-container">
+                                        <div class="point {{ $currentStatus >= $totalSteps ? 'completed' : '' }}">
+                                            @if($currentStatus >= $totalSteps)
                                                 <i class="icon ion-checkmark-circled"></i>
                                             @endif
                                         </div>
@@ -189,8 +228,7 @@
                             top: 0;
                             left: 0;
                             height: 4px;
-                            background-color: #f6993f;
-                            /* สีส้มตามภาพตัวอย่าง */
+                            background-color: #f6993f; /* สีส้มตามภาพตัวอย่าง */
                             max-width: 100%;
                             transition: width 0.5s ease;
                         }
@@ -313,21 +351,48 @@
                         <a href="{{ route('order.view') }}" class="btn btn-danger">
                             <i class="fa fa-arrow-left"></i> กลับไปหน้ารายการ</a>
 
-                        @if ($order && $order->status != 'success')
-                            @php
-                                $notification = App\Models\Notification::where('order_id', $patronid)
-                                    ->where('is_read', false)
-                                    ->first();
-                            @endphp
-                            @if ($notification)
-                                <a href="{{ route('notifications.detail', $notification->id) }}"
-                                    class="btn btn-primary ml-2">
-                                    <i class="fa fa-check-circle"></i> ยืนยันรายการ
-                                </a>
-                            @endif
-                        @endif
+                        @php
+                            // ตรวจสอบสถานะสำหรับการแสดงปุ่ม
+                            $showConfirmButton = false;
+                            $showDeliveryButton = false;
+
+                            if (isset($orderItem[0]->order)) {
+                                $order = $orderItem[0]->order;
+
+                                // แสดงปุ่มยืนยันเมื่อยังไม่ได้ยืนยัน
+                                if ($order->status != 'success') {
+                                    $notification = App\Models\Notification::where('order_id', $order->id)
+                                        ->where('is_read', false)
+                                        ->first();
+
+                                    if ($notification) {
+                                        $showConfirmButton = true;
+                                    }
+                                }
+
+                                // แสดงปุ่มยืนยันการจัดส่งเมื่อยืนยันแล้วแต่ยังไม่ได้จัดส่ง และเป็นการรับที่หน่วยงาน
+                                if ($order->status == 'success' && $order->pickup_type == 'department' && empty($order->delivered_at)) {
+                                    $showDeliveryButton = true;
+                                }
+                            }
+                        @endphp
+
+                        {{-- @if ($showConfirmButton)
+                            <a href="{{ route('notifications.detail', $notification->id) }}" class="btn btn-primary ml-2">
+                                <i class="fa fa-check-circle"></i> ยืนยันรายการ
+                            </a>
+                        @endif --}}
+
+                        {{-- @if ($showDeliveryButton)
+                            <form action="{{ route('order.update-delivery', $order->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-success ml-2" onclick="return confirm('ยืนยันการจัดส่งแล้ว?')">
+                                    <i class="icon ion-paper-airplane mg-r-5"></i> ยืนยันการจัดส่งแล้ว
+                                </button>
+                            </form>
+                        @endif --}}
                     </div>
-                </div><!-- form-layout-footer -->
+                </div>
             </div><!-- table-wrapper -->
         </div> <!-- card -->
     </div><!-- sl-pagebody -->
