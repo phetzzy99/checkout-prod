@@ -53,7 +53,12 @@
                                         title="List checkout detail"> {{ $item->firstname }} {{ $item->lastname }} </a>
                                 </td>
                                 <td data-order="5">
-                                    @if ($item->status == 'success')
+                                    @if ($item->status == 'unavailable')
+                                        <div class="d-flex align-items-center justify-content-start">
+                                            <i class="icon ion-close-circled alert-icon tx-20 tx-danger mg-r-5"></i>
+                                            <span class="tx-danger">ไม่สามารถยืมได้</span>
+                                        </div>
+                                    @elseif ($item->status == 'success')
                                         @if ($item->pickup_type == 'department')
                                             @if (empty($item->delivered_at))
                                                 <div class="d-flex align-items-center justify-content-start">
@@ -62,15 +67,13 @@
                                                 </div>
                                             @else
                                                 <div class="d-flex align-items-center justify-content-start">
-                                                    <i
-                                                        class="icon ion-ios-checkmark alert-icon tx-20 tx-success mg-r-5"></i>
+                                                    <i class="icon ion-ios-checkmark alert-icon tx-20 tx-success mg-r-5"></i>
                                                     <span class="tx-success">จัดส่งแล้ว</span>
                                                 </div>
                                             @endif
                                         @else
                                             <div class="d-flex align-items-center justify-content-start">
-                                                <i
-                                                    class="icon ion-ios-checkmark alert-icon tx-20 tx-success mg-r-5"></i>
+                                                <i class="icon ion-ios-checkmark alert-icon tx-20 tx-success mg-r-5"></i>
                                                 <span class="tx-success">สำเร็จ</span>
                                             </div>
                                         @endif

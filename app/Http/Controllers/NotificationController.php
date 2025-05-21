@@ -38,6 +38,10 @@ class NotificationController extends Controller
                         ->where('pickup_type', 'department')
                         ->whereNull('delivered_at');
                     });
+            } elseif ($request->status === 'unavailable') {
+                $query->whereHas('order', function($q) {
+                    $q->where('status', 'unavailable');
+                });
             }
         }
 
@@ -101,18 +105,19 @@ class NotificationController extends Controller
             'confirmed_at' => now(),
         ]);
 
-        // อัปเดตสถานะ Order เป็น success เมื่อเจ้าหน้าที่ยืนยัน
-        $order->update([
-            'status' => 'success'
-        ]);
-
         // อัปเดตสถานะของแต่ละรายการ
         $itemStatuses = $request->item_status ?? [];
         $itemReasons = $request->item_reasons ?? [];
         $itemNotes = $request->item_notes ?? [];
 
+        $allUnavailable = true; // ตัวแปรเพื่อตรวจสอบว่าทุกรายการไม่มีให้ยืมหรือไม่
+
         foreach ($order->orderItems as $item) {
             $status = isset($itemStatuses[$item->id]) ? $itemStatuses[$item->id] : 'available';
+
+            if ($status === 'available') {
+                $allUnavailable = false;
+            }
 
             // กำหนดหมายเหตุจากเหตุผลที่เลือก
             $note = null;
@@ -133,11 +138,17 @@ class NotificationController extends Controller
             ]);
         }
 
+        // อัปเดตสถานะ Order ตามความเหมาะสม
+        $newStatus = $allUnavailable ? 'unavailable' : 'success';
+        $order->update([
+            'status' => $newStatus
+        ]);
+
         // ส่งอีเมลยืนยันไปหาผู้ยืม
         try {
-            // ต้องโหลดความสัมพันธ์ orderItems เพื่อใช้ในอีเมล
+            // โหลดความสัมพันธ์ orderItems เพื่อใช้ในอีเมล
             $notification->load(['order.orderItems']);
-            Mail::to($order->email)->send(new ConfirmationMail($notification));
+            Mail::to($order->email)->send(new ConfirmationMail($notification, $allUnavailable ? 'unavailable' : 'confirmation'));
         } catch (\Exception $e) {
             \Log::error('Failed to send confirmation email: ' . $e->getMessage());
         }

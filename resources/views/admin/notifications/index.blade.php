@@ -1,4 +1,4 @@
-@extends('admin.admin_master')
+{{-- @extends('admin.admin_master')
 @section('admin')
 
 @section('title')
@@ -154,4 +154,4 @@
         box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     }
 </style>
-@endsection
+@endsection --}}

@@ -23,7 +23,7 @@ class Order extends Model
         'order_date',
         'order_month',
         'order_year',
-        'status', // เพิ่ม status ใน fillable
+        'status', // pending, success, unavailable
         'pickup_type',
         'pickup_location',
         'delivered_at',

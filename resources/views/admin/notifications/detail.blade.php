@@ -1,4 +1,4 @@
-@extends('admin.admin_master')
+{{-- @extends('admin.admin_master')
 @section('admin')
 
 @section('title')
@@ -181,4 +181,4 @@
         });
     });
 </script>
-@endsection
+@endsection --}}

@@ -71,13 +71,13 @@ Route::middleware(['auth:admin'])->group(function(){
         Route::get('/delete/{id}', [StaffController::class, 'StaffDelete'])->name('staff.delete');
     });
 
-    // Route::prefix('notifications')->group(function() {
-    //     Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
-    //     Route::get('/unread', [NotificationController::class, 'getUnreadNotifications'])->name('notifications.unread');
-    //     Route::get('/{id}/detail', [NotificationController::class, 'viewNotificationDetail'])->name('notifications.detail');
-    //     Route::post('/{id}/confirm', [NotificationController::class, 'confirmNotification'])->name('notifications.confirm');
-    //     Route::get('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    // });
+    Route::prefix('notifications')->group(function() {
+        Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/unread', [NotificationController::class, 'getUnreadNotifications'])->name('notifications.unread');
+        Route::get('/{id}/detail', [NotificationController::class, 'viewNotificationDetail'])->name('notifications.detail');
+        Route::post('/{id}/confirm', [NotificationController::class, 'confirmNotification'])->name('notifications.confirm');
+        Route::get('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    });
 
 });
 
@@ -86,9 +86,9 @@ Route::get('/admin/logout', [AdminController::class, 'AdminLogout'])->name('admi
 
 
 // login only web
-Route::middleware(['auth:sanctum,web', 'verified'])->get('/dashboard', function () {
-    return view('dashboard');
-})->name('dashboard');
+// Route::middleware(['auth:sanctum,web', 'verified'])->get('/dashboard', function () {
+//     return view('dashboard');
+// })->name('dashboard');
 
 
 
@@ -115,13 +115,13 @@ Route::prefix('home')->group(function(){
 //          ->name('notifications.mark-all-read');
 // });
 
-Route::prefix('notifications')->group(function() {
-    Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::get('/unread', [NotificationController::class, 'getUnreadNotifications'])->name('notifications.unread');
-    Route::get('/{id}/detail', [NotificationController::class, 'viewNotificationDetail'])->name('notifications.detail');
-    Route::post('/{id}/confirm', [NotificationController::class, 'confirmNotification'])->name('notifications.confirm');
-    Route::get('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-});
+// Route::prefix('notifications')->group(function() {
+//     Route::get('/', [NotificationController::class, 'index'])->name('notifications.index');
+//     Route::get('/unread', [NotificationController::class, 'getUnreadNotifications'])->name('notifications.unread');
+//     Route::get('/{id}/detail', [NotificationController::class, 'viewNotificationDetail'])->name('notifications.detail');
+//     Route::post('/{id}/confirm', [NotificationController::class, 'confirmNotification'])->name('notifications.confirm');
+//     Route::get('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+// });
 
 
 // Loader

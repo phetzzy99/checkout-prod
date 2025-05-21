@@ -122,9 +122,22 @@
             color: #212529;
         }
 
+        .status-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
         .highlight {
             color: #3490dc;
             font-weight: bold;
+        }
+
+        .alert-unavailable {
+            padding: 15px;
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -142,7 +155,20 @@
                     <td class="content-cell"
                         style="box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; position: relative; max-width: 100vw; padding: 32px;">
 
-                        @if($messageType == 'delivery')
+                        @if($messageType == 'unavailable')
+                        <!-- ข้อความสำหรับการแจ้งเตือนไม่มีให้ยืม -->
+                        <h2>แจ้งไม่สามารถยืมหนังสือได้</h2>
+                        <p>เรียน คุณ<span class="highlight">{{ $notification->order->firstname }} {{ $notification->order->lastname }}</span></p>
+                        <p>
+                            หอสมุดกลาง มหาวิทยาลัยราชภัฏสุราษฎร์ธานี ขออภัยในความไม่สะดวก
+                            หนังสือในรายการที่ท่านต้องการยืมนั้นไม่สามารถให้ยืมได้ในขณะนี้
+                            ท่านสามารถตรวจสอบรายละเอียดและสาเหตุได้ตามรายการด้านล่าง
+                        </p>
+
+                        <div class="alert-unavailable">
+                            <strong>ไม่สามารถยืมได้:</strong> กรุณาตรวจสอบรายละเอียดด้านล่างสำหรับสาเหตุของแต่ละรายการ
+                        </div>
+                        @elseif($messageType == 'delivery')
                         <!-- ข้อความสำหรับการจัดส่ง -->
                         <h2>การจัดส่งหนังสือของท่าน</h2>
                         <p>เรียน คุณ<span class="highlight">{{ $notification->order->firstname }} {{ $notification->order->lastname }}</span></p>
@@ -169,14 +195,29 @@
                             <p><strong>เลขที่รายการ:</strong> {{ $notification->order->invoice_no }}</p>
                             <p><strong>วันที่ทำรายการ:</strong> {{ \Carbon\Carbon::parse($notification->order->created_at)->format('d/m/Y H:i') }}</p>
                             <p><strong>สถานะ:</strong>
-                                @if($messageType == 'delivery')
+                                @if($messageType == 'unavailable')
+                                <span class="status-badge status-danger">ไม่สามารถยืมได้</span>
+                                @elseif($messageType == 'delivery')
                                 <span class="status-badge status-success">จัดส่งแล้ว</span>
                                 @else
                                 <span class="status-badge status-success">ยืนยันแล้ว</span>
                                 @endif
                             </p>
-                            @if($notification->order->pickup_type == 'department' && $messageType != 'delivery')
+                            @if($notification->order->pickup_type == 'department' && $messageType != 'delivery' && $messageType != 'unavailable')
                             <p><strong>สถานะการจัดส่ง:</strong> <span class="status-badge status-pending">รอการจัดส่ง</span></p>
+                            @endif
+
+                            <!-- เพิ่มข้อมูลเจ้าหน้าที่ผู้ยืนยันและเวลาที่ยืนยัน -->
+                            @if($notification->confirmed_by && $notification->staff)
+                            <p><strong>ยืนยันโดย:</strong> {{ $notification->staff->name }}</p>
+                            @endif
+
+                            @if($notification->confirmed_at)
+                            <p><strong>เวลาที่ยืนยัน:</strong> {{ \Carbon\Carbon::parse($notification->confirmed_at)->format('d/m/Y H:i') }}</p>
+                            @endif
+
+                            @if($notification->confirmation_note)
+                            <p><strong>หมายเหตุ:</strong> {{ $notification->confirmation_note }}</p>
                             @endif
                         </div>
 
@@ -187,13 +228,15 @@
                             </a>
                         </div>
 
-                        <h3>รายการหนังสือที่ยืม</h3>
+                        <h3>รายการหนังสือที่{{ $messageType == 'unavailable' ? 'ขอยืม' : 'ยืม' }}</h3>
                         <table class="order-table">
                             <tr>
                                 <th style="width: 5%;">ลำดับ</th>
-                                <th style="width: 40%;">ชื่อเรื่อง</th>
-                                <th style="width: 30%;">ผู้แต่ง</th>
-                                <th style="width: 25%;">เลขเรียกหนังสือ</th>
+                                <th style="width: 30%;">ชื่อเรื่อง</th>
+                                <th style="width: 20%;">ผู้แต่ง</th>
+                                <th style="width: 15%;">เลขเรียกหนังสือ</th>
+                                <th style="width: 15%;">สถานะ</th>
+                                <th style="width: 15%;">หมายเหตุ</th>
                             </tr>
                             @php $i = 1; @endphp
                             @foreach ($notification->order->orderItems as $item)
@@ -202,6 +245,14 @@
                                     <td>{{ $item->subject }}</td>
                                     <td>{{ $item->author }}</td>
                                     <td>{{ $item->callnum }}</td>
+                                    <td>
+                                        @if ($item->status == 'available')
+                                        <span style="color: #28a745; font-weight: bold;">ยืมได้</span>
+                                        @else
+                                        <span style="color: #dc3545; font-weight: bold;">ยืมไม่ได้</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $item->note ?? '-' }}</td>
                                 </tr>
                             @endforeach
                         </table>
@@ -209,12 +260,15 @@
                         <div style="margin-top: 30px; border-top: 1px solid #e8e5ef; padding-top: 20px;">
                             <p><strong>หมายเหตุ:</strong></p>
                             <ol>
-                                @if($notification->order->pickup_type == 'library')
+                                @if($messageType == 'unavailable')
+                                <li>หากมีข้อสงสัยหรือต้องการทราบรายละเอียดเพิ่มเติม กรุณาติดต่อห้องสมุด</li>
+                                <li>ท่านสามารถทำรายการยืมใหม่หรือค้นหาทรัพยากรอื่นที่สนใจได้ที่เว็บไซต์ของห้องสมุด</li>
+                                @elseif($notification->order->pickup_type == 'library' && $messageType != 'unavailable')
                                 <li>กรุณานำบัตรประจำตัวมาแสดงเมื่อมารับหนังสือที่หอสมุดกลาง</li>
                                 @else
                                     @if($messageType == 'delivery')
                                     <li>หนังสือได้จัดส่งไปยังหน่วยงานที่ท่านระบุเรียบร้อยแล้ว</li>
-                                    @else
+                                    @elseif($messageType != 'unavailable')
                                     <li>เจ้าหน้าที่จะดำเนินการจัดส่งหนังสือไปยังหน่วยงานที่ท่านระบุต่อไป</li>
                                     @endif
                                 @endif

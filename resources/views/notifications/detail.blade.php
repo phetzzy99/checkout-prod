@@ -1,5 +1,5 @@
-@extends('frontend.main_master')
-@section('content')
+@extends('admin.admin_master')
+@section('admin')
     <div class="sl-mainpanel">
         <div class="sl-pagebody">
             <div class="row">
@@ -12,7 +12,8 @@
                         <div class="card-body">
                             <div class="alert alert-info mb-4">
                                 <h5><i class="fa fa-info-circle"></i> โปรดทราบ</h5>
-                                <p class="mb-0">คุณจำเป็นต้องยืนยันรายการแจ้งเตือนนี้ มิฉะนั้นการแจ้งเตือนจะยังคงแสดงอยู่ในระบบ</p>
+                                <p class="mb-0">คุณจำเป็นต้องยืนยันรายการแจ้งเตือนนี้
+                                    มิฉะนั้นการแจ้งเตือนจะยังคงแสดงอยู่ในระบบ</p>
                             </div>
 
                             <div class="pd-20 bg-gray-200 mb-4">
@@ -79,22 +80,16 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-md-4">
-                                        <p class="tx-medium">สถานที่รับหนังสือ:</p>
-                                    </div>
-                                    <div class="col-md-8">
-                                        @if ($notification->order->pickup_type == 'library')
-                                            <p>รับที่ห้องสมุด</p>
-                                        @else
-                                            <p>รับที่หน่วยงาน: {{ $notification->order->pickup_location }}</p>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-4">
                                         <p class="tx-medium">สถานะการยืม:</p>
                                     </div>
                                     <div class="col-md-8">
-                                        @if ($notification->order->status == 'success')
+                                        @if ($notification->order->status == 'unavailable')
+                                            <span class="badge badge-danger">ไม่สามารถยืมได้</span>
+                                            @if ($notification->confirmed_at)
+                                                <small class="ml-2">(แจ้งเมื่อ:
+                                                    {{ $notification->confirmed_at->format('d/m/Y H:i') }})</small>
+                                            @endif
+                                        @elseif ($notification->order->status == 'success')
                                             @if ($notification->order->pickup_type == 'department')
                                                 @if (empty($notification->order->delivered_at))
                                                     <span class="badge badge-warning">รอการจัดส่ง</span>
@@ -109,16 +104,62 @@
                                         @endif
                                     </div>
                                 </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <p class="tx-medium">สถานที่รับหนังสือ:</p>
+                                    </div>
+                                    <div class="col-md-8">
+                                        @if ($notification->order->pickup_type == 'library')
+                                            <p><span class="badge badge-danger">รับที่ห้องสมุด</p></span>
+                                        @else
+                                            <p><span class="badge badge-danger">รับที่หน่วยงาน: {{ $notification->order->pickup_location }}</p></span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- แสดงสถานที่รับหนังสือเฉพาะกรณีที่สามารถยืมได้ -->
+                                {{-- @if ($notification->order->status != 'unavailable')
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <p class="tx-medium">สถานที่รับหนังสือ:</p>
+                                        </div>
+                                        <div class="col-md-8">
+                                            @if ($notification->order->pickup_type == 'library')
+                                                <p>รับที่ห้องสมุด</p>
+                                            @else
+                                                <p>รับที่หน่วยงาน: {{ $notification->order->pickup_location }}</p>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif --}}
+
+                                <!-- เพิ่มข้อความแจ้งเตือนกรณีไม่สามารถยืมได้ -->
+                                @if ($notification->order->status == 'unavailable')
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <div class="alert alert-danger mb-0">
+                                                <i class="fa fa-exclamation-triangle mr-2"></i>
+                                                <strong>ไม่สามารถยืมได้:</strong>
+                                                หนังสือทุกรายการในคำขอนี้ไม่สามารถให้ยืมได้
+                                                กรุณาตรวจสอบรายละเอียดหมายเหตุของแต่ละรายการ
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
 
                             <!-- รายการทรัพยากรที่ยืม แสดงเป็นตาราง -->
                             <div class="card bd-0 mg-t-20 mg-b-20">
                                 <div class="card-header bg-info">
-                                    <h6 class="card-title tx-white">รายการทรัพยากรที่ยืม</h6>
+                                    <h6 class="card-title tx-white">
+                                        รายการทรัพยากรที่{{ $notification->order->status == 'unavailable' ? 'ขอยืม' : 'ยืม' }}
+                                    </h6>
                                 </div>
                                 <div class="card-body">
                                     @if (!$notification->is_read)
-                                        <form id="confirmation-form" action="{{ route('notifications.confirm', $notification->id) }}" method="POST">
+                                        <form id="confirmation-form"
+                                            action="{{ route('notifications.confirm', $notification->id) }}"
+                                            method="POST">
                                             @csrf
                                             <div class="table-responsive">
                                                 <table class="table table-bordered table-hover">
@@ -143,25 +184,33 @@
                                                                     <select class="form-control item-status"
                                                                         id="item-status-{{ $item->id }}"
                                                                         name="item_status[{{ $item->id }}]">
-                                                                        <option value="available" selected>มีให้ยืม</option>
-                                                                        <option value="unavailable">ไม่มีให้ยืม</option>
+                                                                        <option value="available" selected>ยืมได้</option>
+                                                                        <option value="unavailable">ยืมไม่ได้</option>
                                                                     </select>
                                                                 </td>
                                                                 <td>
-                                                                    <div class="item-note-container" id="note-container-{{ $item->id }}" style="display: none;">
+                                                                    <div class="item-note-container"
+                                                                        id="note-container-{{ $item->id }}"
+                                                                        style="display: none;">
                                                                         <!-- เพิ่มตัวเลือกสาเหตุการยืมไม่ได้ -->
-                                                                        <select class="form-control form-control-sm item-reason mb-2"
+                                                                        <select
+                                                                            class="form-control form-control-sm item-reason mb-2"
                                                                             id="item-reason-{{ $item->id }}"
                                                                             name="item_reasons[{{ $item->id }}]">
-                                                                            <option value="">-- เลือกสาเหตุ --</option>
+                                                                            <option value="">-- เลือกสาเหตุ --
+                                                                            </option>
                                                                             <option value="ยืมไปแล้ว">ยืมไปแล้ว</option>
-                                                                            <option value="หนังสืออยู่ระหว่างการซ่อม">หนังสืออยู่ระหว่างการซ่อม</option>
-                                                                            <option value="หนังสือสำหรับใช้ในห้องสมุด">หนังสือสำหรับใช้ในห้องสมุด</option>
+                                                                            <option value="หนังสืออยู่ระหว่างการซ่อม">
+                                                                                หนังสืออยู่ระหว่างการซ่อม</option>
+                                                                            <option value="หนังสือสำหรับใช้ในห้องสมุด">
+                                                                                หนังสือสำหรับใช้ในห้องสมุด</option>
                                                                             <option value="หนังสือสงวน">หนังสือสงวน</option>
-                                                                            <option value="หนังสืออยู่ระหว่างการจัดหาย">หนังสืออยู่ระหว่างการจัดหาย</option>
+                                                                            <option value="หนังสืออยู่ระหว่างการจัดหาย">
+                                                                                หนังสืออยู่ระหว่างการจัดหาย</option>
                                                                             <option value="other">อื่นๆ</option>
                                                                         </select>
-                                                                        <input type="text" class="form-control form-control-sm item-note"
+                                                                        <input type="text"
+                                                                            class="form-control form-control-sm item-note"
                                                                             id="item-note-{{ $item->id }}"
                                                                             name="item_notes[{{ $item->id }}]"
                                                                             placeholder="ระบุเหตุผล"
@@ -178,13 +227,16 @@
                                             @if ($notification->order->pickup_type == 'department')
                                                 <div class="form-group mt-4">
                                                     <div class="alert alert-info">
-                                                        <i class="fa fa-info-circle"></i> รายการนี้เป็นการรับที่หน่วยงาน: <strong>{{ $notification->order->pickup_location }}</strong>
+                                                        <i class="fa fa-info-circle"></i> รายการนี้เป็นการรับที่หน่วยงาน:
+                                                        <strong>{{ $notification->order->pickup_location }}</strong>
                                                     </div>
                                                 </div>
                                             @endif
 
                                             <div class="form-group mt-4">
-                                                <label for="staff_id" class="form-control-label">เลือกเจ้าหน้าที่ผู้ยืนยัน: <span class="tx-danger">*</span></label>
+                                                <label for="staff_id"
+                                                    class="form-control-label">เลือกเจ้าหน้าที่ผู้ยืนยัน: <span
+                                                        class="tx-danger">*</span></label>
                                                 <select class="form-control" name="staff_id" id="staff_id" required>
                                                     <option value="">-- เลือกเจ้าหน้าที่ --</option>
                                                     @foreach ($staffs as $staff)
@@ -197,7 +249,8 @@
                                             </div>
 
                                             <div class="form-group">
-                                                <label for="confirmation_note" class="form-control-label">บันทึกเพิ่มเติม:</label>
+                                                <label for="confirmation_note"
+                                                    class="form-control-label">บันทึกเพิ่มเติม:</label>
                                                 <textarea class="form-control" name="confirmation_note" id="confirmation_note" rows="3"></textarea>
                                             </div>
 
@@ -205,7 +258,8 @@
                                                 <button type="submit" class="btn btn-primary btn-lg">
                                                     <i class="fa fa-check-circle"></i> ยืนยันการรับทราบ
                                                 </button>
-                                                <a href="{{ route('notifications.index') }}" class="btn btn-secondary btn-lg ml-2">
+                                                <a href="{{ route('notifications.index') }}"
+                                                    class="btn btn-secondary btn-lg ml-2">
                                                     <i class="fa fa-arrow-left"></i> กลับไปหน้ารายการ
                                                 </a>
                                             </div>
@@ -232,17 +286,14 @@
                                                             <td>{{ $item->callnum }}</td>
                                                             <td class="text-center">
                                                                 @php
-                                                                    $isAvailable = isset($item->status) ? $item->status == 'available' : true;
+                                                                    $isAvailable = isset($item->status)
+                                                                        ? $item->status == 'available'
+                                                                        : true;
                                                                 @endphp
-                                                                @if($isAvailable)
+                                                                @if ($isAvailable)
                                                                     <span class="badge badge-success">ยืมได้</span>
                                                                 @else
                                                                     <span class="badge badge-danger">ยืมไม่ได้</span>
-                                                                    @if(isset($item->note))
-                                                                        <div class="mt-2">
-                                                                            <span class="reason-badge">{{ $item->note }}</span>
-                                                                        </div>
-                                                                    @endif
                                                                 @endif
                                                             </td>
                                                             <td>
@@ -265,7 +316,11 @@
                                             <p class="tx-medium">สถานะตัวเล่มหนังสือ:</p>
                                         </div>
                                         <div class="col-md-8">
-                                            <p><span class="badge badge-success">ยืนยันแล้ว</span></p>
+                                            @if ($notification->order->status == 'unavailable')
+                                                <p><span class="badge badge-danger">ไม่สามารถยืมได้</span></p>
+                                            @else
+                                                <p><span class="badge badge-success">ยืนยันแล้ว</span></p>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="row">
@@ -281,7 +336,8 @@
                                             <p class="tx-medium">เวลาที่ยืนยัน:</p>
                                         </div>
                                         <div class="col-md-8">
-                                            <p>{{ $notification->confirmed_at ? $notification->confirmed_at->format('d/m/Y H:i:s') : '-' }}</p>
+                                            <p>{{ $notification->confirmed_at ? $notification->confirmed_at->format('d/m/Y H:i:s') : '-' }}
+                                            </p>
                                         </div>
                                     </div>
                                     @if ($notification->confirmation_note)
@@ -295,8 +351,8 @@
                                         </div>
                                     @endif
 
-                                    <!-- เพิ่มส่วนของสถานะการจัดส่ง -->
-                                    @if ($notification->order->pickup_type == 'department')
+                                    <!-- เพิ่มส่วนของสถานะการจัดส่ง เฉพาะกรณีที่สามารถยืมได้ -->
+                                    @if ($notification->order->status == 'success' && $notification->order->pickup_type == 'department')
                                         <div class="row mg-t-20">
                                             <div class="col-md-4">
                                                 <p class="tx-medium">สถานะการจัดส่ง:</p>
@@ -305,9 +361,12 @@
                                                 @if (empty($notification->order->delivered_at))
                                                     <div class="d-flex align-items-center">
                                                         <span class="badge badge-warning mr-3">รอการจัดส่ง</span>
-                                                        <form action="{{ route('order.update-delivery', $notification->order->id) }}" method="POST">
+                                                        <form
+                                                            action="{{ route('order.update-delivery', $notification->order->id) }}"
+                                                            method="POST">
                                                             @csrf
-                                                            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('ยืนยันการจัดส่งแล้ว?')">
+                                                            <button type="submit" class="btn btn-success btn-sm"
+                                                                onclick="return confirm('ยืนยันการจัดส่งแล้ว?')">
                                                                 <i class="fa fa-paper-plane mr-1"></i> ยืนยันการจัดส่งแล้ว
                                                             </button>
                                                         </form>
@@ -315,16 +374,30 @@
                                                 @else
                                                     <div>
                                                         <span class="badge badge-success">จัดส่งแล้ว</span>
-                                                        <small class="ml-2">({{ $notification->order->delivered_at->format('d/m/Y H:i:s') }})</small>
+                                                        <small
+                                                            class="ml-2">({{ $notification->order->delivered_at->format('d/m/Y H:i:s') }})</small>
                                                     </div>
                                                 @endif
                                             </div>
                                         </div>
                                     @endif
+
+                                    <!-- เพิ่มคำแนะนำสำหรับกรณีไม่สามารถยืมได้ -->
+                                    @if ($notification->order->status == 'unavailable')
+                                        <div class="alert alert-info mt-4">
+                                            <h6><i class="fa fa-info-circle mr-1"></i> คำแนะนำ:</h6>
+                                            <ul class="mb-0">
+                                                <li>ผู้ใช้ได้รับการแจ้งเตือนทางอีเมลเกี่ยวกับสถานะการยืมแล้ว</li>
+                                                <li>ผู้ใช้สามารถตรวจสอบเหตุผลที่ไม่สามารถยืมได้จากรายการด้านบน</li>
+                                                <li>ผู้ใช้สามารถทำรายการยืมใหม่ได้ตลอดเวลา</li>
+                                            </ul>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <div class="text-center mt-4">
-                                    <a href="{{ route('order-list-view', $notification->order_id) }}" class="btn btn-info btn-lg">
+                                    <a href="{{ route('order-list-view', $notification->order_id) }}"
+                                        class="btn btn-info btn-lg">
                                         <i class="fa fa-eye"></i> ดูรายละเอียดการยืม
                                     </a>
                                     <a href="{{ route('notifications.index') }}" class="btn btn-secondary btn-lg ml-2">
@@ -346,38 +419,67 @@
             border-radius: 4px;
             display: inline-block;
         }
+
         .badge-success {
             background-color: #28a745;
             color: white;
         }
+
         .badge-danger {
             background-color: #dc3545;
             color: white;
         }
+
         .badge-warning {
             background-color: #ffc107;
             color: #212529;
         }
+
+        /* สำหรับข้อความแจ้งเตือนกรณีไม่สามารถยืมได้ */
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        /* สำหรับคำแนะนำ */
+        .alert-info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+
+        .alert-info ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+
         .select2-container {
             width: 100% !important;
         }
-        .table th, .table td {
+
+        .table th,
+        .table td {
             vertical-align: middle;
         }
+
         /* สไตล์สำหรับ dropdown */
         .item-status {
             font-size: 14px;
             border-radius: 4px;
         }
+
         .item-status option[value="available"] {
             background-color: #28a745;
             color: white;
         }
+
         .item-status option[value="unavailable"] {
             background-color: #dc3545;
             color: white;
         }
-            /* เพิ่มเติมจาก CSS เดิม */
+
+        /* เพิ่มเติมจาก CSS เดิม */
         .is-invalid {
             border-color: #dc3545 !important;
             padding-right: calc(1.5em + 0.75rem);
@@ -431,7 +533,8 @@
                             if (!reason) {
                                 valid = false;
                                 $(`#item-reason-${itemId}`).addClass('is-invalid');
-                            } else if (reason === 'other' && $(`#item-note-${itemId}`).val().trim() === '') {
+                            } else if (reason === 'other' && $(`#item-note-${itemId}`).val()
+                                .trim() === '') {
                                 valid = false;
                                 $(`#item-note-${itemId}`).addClass('is-invalid');
                             }

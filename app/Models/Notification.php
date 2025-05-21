@@ -32,4 +32,5 @@ class Notification extends Model
     {
         return $this->belongsTo(Staff::class, 'confirmed_by');
     }
+    
 }

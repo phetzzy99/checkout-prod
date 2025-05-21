@@ -29,6 +29,8 @@ class ConfirmationMail extends Mailable
         // กำหนดหัวข้ออีเมลตามประเภทข้อความ
         if ($messageType == 'delivery') {
             $this->subject = 'แจ้งการจัดส่งหนังสือ - SRU Library';
+        } elseif ($messageType == 'unavailable') {
+            $this->subject = 'แจ้งไม่สามารถยืมหนังสือได้ - SRU Library';
         } else {
             $this->subject = 'ยืนยันรายการยืมเรียบร้อยแล้ว - SRU Library';
         }

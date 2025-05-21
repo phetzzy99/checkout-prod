@@ -95,31 +95,52 @@
                                         <p class="tx-medium">สถานะ:</p>
                                     </div>
                                     <div class="col-md-8">
-                                        @if ($order->status == 'success')
+                                        @if ($order->status == 'unavailable')
+                                            <span class="badge badge-danger">ไม่สามารถยืมได้</span>
+                                            @if ($order->created_at)
+                                                <small class="ml-2">(แจ้งเมื่อ: {{ Carbon\Carbon::parse($order->updated_at)->format('d/m/Y H:i') }})</small>
+                                            @endif
+                                        @elseif ($order->status == 'success')
                                             <span class="badge badge-success">ยืนยันแล้ว</span>
                                         @else
                                             <span class="badge badge-warning">รอยืนยัน</span>
                                         @endif
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <p class="tx-medium">สถานที่รับหนังสือ:</p>
-                                    </div>
-                                    <div class="col-md-8">
-                                        @if ($orderItem[0]->order->pickup_type == 'library')
-                                            <span class="badge badge-info">รับที่ห้องสมุด</span>
-                                        @else
-                                            <span class="badge badge-primary">รับที่หน่วยงาน: {{ $orderItem[0]->order->pickup_location }}</span>
 
-                                            @if (!empty($orderItem[0]->order->delivered_at))
-                                                <span class="badge badge-success ml-2">จัดส่งแล้ว ({{ $orderItem[0]->order->delivered_at->format('d/m/Y H:i') }})</span>
+                                <!-- แสดงสถานที่รับเฉพาะกรณีที่สามารถยืมได้ -->
+                                @if ($order->status != 'unavailable')
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <p class="tx-medium">สถานที่รับหนังสือ:</p>
+                                        </div>
+                                        <div class="col-md-8">
+                                            @if ($orderItem[0]->order->pickup_type == 'library')
+                                                <span class="badge badge-info">รับที่ห้องสมุด</span>
                                             @else
-                                                <span class="badge badge-warning ml-2">รอจัดส่ง</span>
+                                                <span class="badge badge-primary">รับที่หน่วยงาน: {{ $orderItem[0]->order->pickup_location }}</span>
+
+                                                @if (!empty($orderItem[0]->order->delivered_at))
+                                                    <span class="badge badge-success ml-2">จัดส่งแล้ว ({{ $orderItem[0]->order->delivered_at->format('d/m/Y H:i') }})</span>
+                                                @else
+                                                    <span class="badge badge-warning ml-2">รอจัดส่ง</span>
+                                                @endif
                                             @endif
-                                        @endif
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
+
+                                <!-- แสดงข้อความแจ้งเตือนกรณีไม่สามารถยืมได้ -->
+                                @if ($order->status == 'unavailable')
+                                    <div class="row mt-3">
+                                        <div class="col-12">
+                                            <div class="alert alert-danger mb-0">
+                                                <i class="fa fa-exclamation-triangle mr-2"></i>
+                                                <strong>ไม่สามารถยืมได้:</strong> หนังสือทุกรายการในคำขอนี้ไม่สามารถให้ยืมได้ กรุณาตรวจสอบรายละเอียดด้านล่าง
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -130,10 +151,16 @@
                         @php
                             // กำหนดค่าเริ่มต้น
                             $isDeliveryToLocation = false;
+                            $isUnavailable = false;
 
                             // ตรวจสอบว่าเป็นการรับที่หน่วยงานหรือไม่
                             if (isset($orderItem[0]->order->pickup_type) && $orderItem[0]->order->pickup_type == 'department') {
                                 $isDeliveryToLocation = true;
+                            }
+
+                            // ตรวจสอบว่าสถานะเป็น unavailable หรือไม่
+                            if (isset($orderItem[0]->order->status) && $orderItem[0]->order->status == 'unavailable') {
+                                $isUnavailable = true;
                             }
 
                             // กำหนดจำนวนขั้นตอนทั้งหมด
@@ -148,6 +175,8 @@
 
                                 if ($order->status == 'pending') {
                                     $currentStatus = 2; // กำลังจัดเตรียมทรัพยากร
+                                } elseif ($order->status == 'unavailable') {
+                                    $currentStatus = $totalSteps; // ไม่สามารถยืมได้
                                 } elseif ($order->status == 'success') {
                                     if ($isDeliveryToLocation && empty($order->delivered_at)) {
                                         $currentStatus = 3; // รอจัดส่ง
@@ -187,7 +216,7 @@
                                         <div class="point-label">กำลังจัดเตรียมทรัพยากร</div>
                                     </div>
 
-                                    @if($isDeliveryToLocation)
+                                    @if($isDeliveryToLocation && !$isUnavailable)
                                     <div class="point-container">
                                         <div class="point {{ $currentStatus >= 3 ? 'completed' : '' }}">
                                             @if($currentStatus >= 3)
@@ -199,12 +228,22 @@
                                     @endif
 
                                     <div class="point-container">
-                                        <div class="point {{ $currentStatus >= $totalSteps ? 'completed' : '' }}">
+                                        <div class="point {{ $currentStatus >= $totalSteps ? ($isUnavailable ? 'unavailable' : 'completed') : '' }}">
                                             @if($currentStatus >= $totalSteps)
-                                                <i class="icon ion-checkmark-circled"></i>
+                                                @if($isUnavailable)
+                                                    <i class="icon ion-close-circled"></i>
+                                                @else
+                                                    <i class="icon ion-checkmark-circled"></i>
+                                                @endif
                                             @endif
                                         </div>
-                                        <div class="point-label">ยืนยันเรียบร้อยแล้ว</div>
+                                        <div class="point-label">
+                                            @if($isUnavailable)
+                                            ไม่สามารถยืมได้
+                                            @else
+                                            ยืนยันเรียบร้อยแล้ว
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -305,6 +344,10 @@
                                 margin-left: -30px;
                             }
                         }
+
+                            .point.unavailable {
+                            background-color: #dc3545; /* สีแดง */
+                        }
                     </style>
 
                     <table class="table table-bordered table-hover">
@@ -329,9 +372,9 @@
                                     <td class="text-center">
                                         @if (isset($item->status))
                                             @if ($item->status == 'available')
-                                                <span class="badge badge-success">มีให้ยืม</span>
+                                                <span class="badge badge-success">ยืมได้</span>
                                             @elseif ($item->status == 'unavailable')
-                                                <span class="badge badge-danger">ไม่มีให้ยืม</span>
+                                                <span class="badge badge-danger">ยืมไม่ได้</span>
                                             @elseif ($item->status == 'pending')
                                                 <span class="badge badge-warning">กำลังตรวจสอบทรัพยากร</span>
                                             @endif
@@ -350,6 +393,11 @@
                     <div class="text-center">
                         <a href="{{ route('order.view') }}" class="btn btn-danger">
                             <i class="fa fa-arrow-left"></i> กลับไปหน้ารายการ</a>
+                    @auth('admin')
+                        <a href="{{ route('notifications.index') }}" class="btn btn-primary">
+                            <i class="fa fa-list-alt"></i> กลับไปหน้าการแจ้งเตือน
+                        </a>
+                    @endauth
 
                         @php
                             // ตรวจสอบสถานะสำหรับการแสดงปุ่ม

@@ -92,42 +92,48 @@ class OrderController extends Controller
                 'is_read' => false,
             ]);
 
-            // Create order items
-            foreach ($request->addMoreInputFields as $item) {
+            // สร้าง order items
+            foreach ($request->addMoreInputFields as $key => $value) {
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'subject' => trim($item['subject']),
-                    'author' => trim($item['author']),
-                    'callnum' => trim($item['callnum']),
+                    'subject' => trim($value['subject']),
+                    'author'=> trim($value['author']),
+                    'callnum' => trim($value['callnum']),
+                    'status' => 'pending', // เพิ่มค่าเริ่มต้นของสถานะ
                     'created_at' => Carbon::now(),
                 ]);
             }
 
             // Send Pusher notification
             try {
-                $pusher = new \Pusher\Pusher(
-                    env('PUSHER_APP_KEY'),
-                    env('PUSHER_APP_SECRET'),
-                    env('PUSHER_APP_ID'),
-                    [
-                        'cluster' => env('PUSHER_APP_CLUSTER'),
-                        'useTLS' => true
-                    ]
-                );
+                // ตรวจสอบว่ามีการตั้งค่า Pusher ใน .env หรือไม่
+                if (env('PUSHER_APP_KEY') && env('PUSHER_APP_SECRET') && env('PUSHER_APP_ID')) {
+                    $pusher = new \Pusher\Pusher(
+                        env('PUSHER_APP_KEY'),
+                        env('PUSHER_APP_SECRET'),
+                        env('PUSHER_APP_ID'),
+                        [
+                            'cluster' => env('PUSHER_APP_CLUSTER', 'ap1'),
+                            'useTLS' => true
+                        ]
+                    );
 
-                $order->load('faculty'); // Eager load faculty relationship
-                $notification_data = [
-                    'order' => $order,
-                    'notification' => [
-                        'title' => 'มีรายการยืมใหม่',
-                        'message' => "รายการยืมใหม่จาก {$order->firstname} {$order->lastname}"
-                    ]
-                ];
-                // $pusher->trigger('orders', 'new-order', ['order' => $order]);
-                $pusher->trigger('orders', 'new-order', $notification_data);
+                    $order->load('faculty'); // Eager load faculty relationship
+                    $notification_data = [
+                        'order' => $order,
+                        'notification' => [
+                            'title' => 'มีรายการยืมใหม่',
+                            'message' => "รายการยืมใหม่จาก {$order->firstname} {$order->lastname}"
+                        ]
+                    ];
 
+                    $pusher->trigger('orders', 'new-order', $notification_data);
+                } else {
+                    \Log::info('Pusher not configured, skipping notification');
+                }
             } catch (\Exception $e) {
                 \Log::error('Pusher notification failed: ' . $e->getMessage());
+                // ไม่ต้อง throw exception ต่อ เพื่อไม่ให้กระทบกับการทำงานหลัก
             }
 
             // Send email

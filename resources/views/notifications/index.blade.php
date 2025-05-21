@@ -1,5 +1,5 @@
-@extends('frontend.main_master')
-@section('content')
+@extends('admin.admin_master')
+@section('admin')
     <div class="sl-mainpanel">
         <div class="sl-pagebody">
             <div class="card pd-20 pd-sm-40">
@@ -12,12 +12,12 @@
                 @endif
 
                 <div class="table-wrapper">
-                    <div class="text-right mb-4">
+                    {{-- <div class="text-right mb-4">
                         <a href="{{ route('notifications.mark-all-read') }}" class="btn btn-info"
                             onclick="return confirm('ต้องการทำเครื่องหมายว่าอ่านทั้งหมดแล้วใช่หรือไม่?')">
                             <i class="fa fa-check-square-o"></i> อ่านทั้งหมดแล้ว
                         </a>
-                    </div>
+                    </div> --}}
 
                     <div class="row mb-3">
                         <div class="col-md-3">
@@ -28,6 +28,8 @@
                                         ยังไม่ได้ยืนยัน</option>
                                     <option value="read" {{ request('status') == 'read' ? 'selected' : '' }}>ยืนยันแล้ว
                                     </option>
+                                    <option value="unavailable" {{ request('status') == 'unavailable' ? 'selected' : '' }}>
+                                        ไม่สามารถยืมได้</option>
                                     <option value="waiting_delivery" {{ request('status') == 'waiting_delivery' ? 'selected' : '' }}>
                                         รอการจัดส่ง</option>
                                 </select>
@@ -43,6 +45,8 @@
                             กำลังแสดงรายการที่ <span class="badge badge-success">ยืนยันแล้ว</span> เท่านั้น
                         @elseif(request('status') == 'waiting_delivery')
                             กำลังแสดงรายการที่ <span class="badge badge-warning">รอการจัดส่ง</span> เท่านั้น
+                        @elseif(request('status') == 'unavailable')
+                            กำลังแสดงรายการที่ <span class="badge badge-danger">ไม่สามารถยืมได้</span> เท่านั้น
                         @else
                             กำลังแสดงรายการทั้งหมด
                         @endif
@@ -58,6 +62,7 @@
                                 <th>วันที่</th>
                                 <th>ข้อความ</th>
                                 <th>คณะ/หน่วยงาน</th>
+                                <th>สถานที่รับ</th>
                                 <th>สถานะตัวเล่มหนังสือ</th>
                                 <th>สถานะการยืม</th>
                                 <th>เจ้าหน้าที่ผู้ยืนยัน</th>
@@ -71,6 +76,13 @@
                                     <td>{{ $notification->message }}</td>
                                     <td>{{ $notification->order->faculty->faculty_name_th ?? '-' }}</td>
                                     <td>
+                                        @if ($notification->order->pickup_type == 'department')
+                                            <span class="badge badge-primary">{{ $notification->order->pickup_location ?? '-' }}</span>
+                                        @else
+                                            <span class="badge badge-primary">{{ $notification->order->pickup_type == 'library' ? 'รับที่ห้องสมุด' : '-' }}</span>
+                                        @endif
+                                    </td>
+                                    <td>
                                         @if ($notification->is_read)
                                             <span class="badge badge-success">ยืนยันแล้ว</span>
                                         @else
@@ -78,7 +90,9 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if ($notification->order->status == 'success')
+                                        @if ($notification->order->status == 'unavailable')
+                                            <span class="badge badge-danger">ไม่สามารถยืมได้</span>
+                                        @elseif ($notification->order->status == 'success')
                                             @if ($notification->order->pickup_type == 'department')
                                                 @if (empty($notification->order->delivered_at))
                                                     <span class="badge badge-warning">รอการจัดส่ง</span>
@@ -89,12 +103,12 @@
                                                 <span class="badge badge-success">สำเร็จ</span>
                                             @endif
                                         @else
-                                            <span class="badge badge-warning">รออนุมัติ</span>
+                                            <span class="badge badge-warning">รอยืนยัน</span>
                                         @endif
                                     </td>
                                     <td>
                                         @if ($notification->is_read && $notification->staff)
-                                            {{ $notification->staff->name }}
+                                            คุณ {{ $notification->staff->name }}
                                         @else
                                             -
                                         @endif
